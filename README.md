@@ -10,4 +10,15 @@ Pobierz repozytorium jako ZIP, rozpakuj je i otwórz [demo/index.html](demo/inde
 - **Zmiana obrotów i dźwięku** pokazuje zdarzenie widoczne w obu kanałach.
 - **Sprawdzenie pasma łożyska** pokazuje, kiedy potrzebne są dodatkowy pomiar i referencja.
 
-Demo korzysta z danych syntetycznych. Analiza własnych nagrań, import odczytów OBD‑II oraz silnik TSI należą do rozwijanej wersji pełnej. Demo nie diagnozuje usterek ani nie określa żywotności części.
+Demo korzysta z danych syntetycznych.
+
+## Alfa warsztatowa
+
+Osobne wydanie dla Windows x64 zawiera lokalny dashboard do własnych pomiarów.
+
+- **Czujniki OBD‑II** · import CSV, wykres wybranego kanału oraz zapis odczytów i raportu JSON. Obsługiwane odczyty to m.in. obroty, prędkość, temperatura płynu, przepustnica, pedał przyspieszenia, obciążenie, ciśnienie dolotu, MAF i NOx.
+- **Dźwięk silnika** · import WAV, szczyty widma i przebiegi energii. Z opcjonalnym plikiem znaczników można porównać energię w sektorach cyklu 720°.
+- **Rozrząd** · pomiar fazy CKP–CMP z wybranych krawędzi oscyloskopu, porównanie ze sprawnym wzorcem i osobny raport z każdej wizyty.
+- **Cechy akustyczne łożysk** · dostępne w narzędziu wiersza poleceń.
+
+Alfa służy do prób warsztatowych. Skuteczność diagnoz na różnych samochodach i działanie na żywo wymagają walidacji. [Opis wydania na TSI HUB](https://tsihub.pl/predikt-motor.html)
