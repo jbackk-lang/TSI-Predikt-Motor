@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TSI Predikt Motor · Demo</title>
+<style>
+:root{color-scheme:dark;--bg:#111014;--card:#221c27;--line:#47384e;--ink:#fff2eb;--muted:#d4bdca;--accent:#ff9b85;--secondary:#e5adff;font:16px/1.55 system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#391f34,transparent 58%),var(--bg);color:var(--ink)}
+main{width:min(1120px,92%);margin:0 auto;padding:42px 0}a{color:var(--accent)}h1,h2,p{margin:0}h1{font-size:clamp(2.3rem,7vw,4.8rem);line-height:1.08;letter-spacing:-.055em;margin:.2em 0}h2{font-size:1.1rem}.eyebrow,.tag{color:var(--accent);font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.13em}.lead,small,.muted{color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(250px,1fr);gap:16px;margin-top:24px}.card{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:19px;padding:20px}.controls{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 18px}label{display:grid;gap:4px;font-size:.86rem;color:var(--muted)}
+select,button{font:inherit;border:1px solid #775965;border-radius:9px;padding:.55em .7em;color:var(--ink);background:#312334}button{cursor:pointer;text-align:left;font-weight:650}button:disabled{opacity:.5;cursor:default}button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.plot{display:block;width:100%;background:#17131c;border-radius:12px}.grid{stroke:#4f4155;stroke-width:1}.series{fill:none;stroke:var(--accent);stroke-width:2;vector-effect:non-scaling-stroke}.secondary{stroke:var(--secondary)}.zone{fill:#ff9b8526}.legend{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;margin:.45em 0 0;color:var(--muted);font-size:.86rem}.legend strong{color:var(--accent)}.legend .other{color:var(--secondary)}.actions{display:grid;gap:8px;margin-top:15px}.readout{display:grid;gap:.5em}.callout{border-left:3px solid var(--accent);background:#332332;padding:.8em;margin-top:.5em}.counts{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.9rem}footer{margin-top:24px}.links{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}main{padding-top:22px}.card{padding:15px}}
+</style>
+<main>
+  <nav class="links" aria-label="Informacje o projekcie"><a href="https://github.com/jbackk-lang/TSI-Predikt-Motor">GitHub</a><a href="https://tsihub.pl/predikt-motor.html">Opis na TSI HUB</a></nav>
+  <header><div class="eyebrow">Bezpłatne demo · Dane syntetyczne</div><h1>TSI Predikt Motor</h1><p class="lead">Porównaj obroty z OBD‑II i przebieg dźwięku. Zobacz, kiedy warto powtórzyć pomiar albo dołączyć próbkę odniesienia.</p></header>
+  <div class="layout">
+    <section class="card" aria-label="Stanowisko pomiarowe">
+      <div class="controls">
+        <label>Scenariusz<select id="scenario"><option value="idle">Stabilny bieg jałowy</option><option value="transient">Zmiana obrotów i dźwięku</option><option value="bearing">Sprawdzenie pasma łożyska</option></select></label>
+        <label>Kanał<select id="channel"><option value="both">Obroty + dźwięk</option><option value="rpm">Tylko obroty</option><option value="audio">Tylko dźwięk</option></select></label>
+        <label>Przedział<select id="window"><option value="all">0–12 s</option><option value="event">4–8 s</option></select></label>
+      </div>
+      <h2>Przebieg pomiaru</h2>
+      <svg class="plot" id="plot" viewBox="0 0 600 200" role="img" aria-label="Przykładowe przebiegi obrotów i dźwięku">
+        <path class="grid" d="M20 38H580 M20 78H580 M20 118H580 M20 158H580 M20 20V180 M160 20V180 M300 20V180 M440 20V180 M580 20V180"/>
+        <rect id="zone" class="zone" y="20" height="160"/>
+        <polyline id="rpm" class="series"/><polyline id="audio" class="series secondary"/>
+      </svg>
+      <p class="legend"><span><strong>Obroty</strong> · 650–1 300 obr./min</span><span><strong class="other">Dźwięk</strong> · poziom względny 0–100%</span><span id="axis">0–12 s</span></p>
+    </section>
+    <section class="card">
+      <div class="readout" role="status" aria-live="polite">
+        <div class="tag">Wynik scenariusza</div><h2 id="heading"></h2><p id="note" class="muted"></p>
+        <p id="counts" class="counts"></p><p id="next" class="callout"></p>
+      </div>
+      <div class="actions"><button type="button" id="sample">Dodaj przykładowe nagranie</button><button type="button" id="reference">Dodaj przykładową referencję</button><button type="button" id="reset">Zacznij scenariusz od nowa</button></div>
+    </section>
+  </div>
+  <footer><small>Demo symuluje przebiegi i komunikaty w przeglądarce. Nie korzysta z mikrofonu, nie łączy się z pojazdem i nie diagnozuje usterek.</small></footer>
+</main>
+<script>
+'use strict';
+const el = id => document.getElementById(id);
+const ui = Object.fromEntries(['scenario','channel','window','plot','zone','rpm','audio','axis','heading','note','counts','next','sample','reference','reset'].map(id => [id, el(id)]));
+const presets = {
+  idle: ['Stabilny bieg jałowy', 'W wybranym przykładzie obroty pozostają w pobliżu 800 obr./min, a poziom dźwięku zmienia się nieznacznie.'],
+  transient: ['Oba sygnały zmieniają się około 6. sekundy', 'Wzrost poziomu dźwięku zbiega się ze wzrostem obrotów. Obejrzyj przedział 4–8 s, aby porównać przebiegi.'],
+  bearing: ['Powtarzalne impulsy w dźwięku', 'Widoczne impulsy przy podobnych obrotach można zestawić z referencją sprawnego układu. Sam przebieg nie określa stanu łożyska.']
+};
+let measurements = 1;
+let references = 0;
+function render() {
+  const scenario = ui.scenario.value;
+  const channel = ui.channel.value;
+  const [from,to] = ui.window.value === 'event' ? [4,8] : [0,12];
+  const bearing = scenario === 'bearing';
+  const transient = scenario === 'transient';
+  const x = t => 20 + (t - from) * 560 / (to - from);
+  const rpm = [], audio = [];
+  for (let i = 0; i <= 240; i++) {
+    const t = from + i * (to - from) / 240;
+    const rise = transient ? 1 / (1 + Math.exp(-7 * (t - 6))) : 0;
+    const impulse = bearing ? 39 * Math.max(0, Math.cos(2 * Math.PI * 1.6 * t)) ** 12 : 0;
+    const speed = 800 + 12 * Math.sin(4 * t) + 420 * rise;
+    const level = 23 + 4 * Math.sin(13 * t) + 39 * rise + impulse;
+    rpm.push(`${x(t).toFixed(1)},${(180 - (speed - 650) * 160 / 650).toFixed(1)}`);
+    audio.push(`${x(t).toFixed(1)},${(180 - level * 1.6).toFixed(1)}`);
+  }
+  ui.rpm.setAttribute('points', channel === 'audio' ? '' : rpm.join(' '));
+  ui.audio.setAttribute('points', channel === 'rpm' ? '' : audio.join(' '));
+  ui.zone.setAttribute('x', x(5.7));
+  ui.zone.setAttribute('width', transient ? x(6.3) - x(5.7) : 0);
+  ui.axis.textContent = `${from}–${to} s`;
+  ui.plot.setAttribute('aria-label', `Wykres: ${presets[scenario][0]}, ${ui.channel.selectedOptions[0].text}, ${ui.axis.textContent}`);
+  [ui.heading.textContent, ui.note.textContent] = presets[scenario];
+  ui.counts.textContent = `Próbki pomiarowe: ${measurements} · Referencje: ${references}`;
+  ui.next.textContent = measurements < 2 ? 'Dodaj drugie nagranie z tego samego miejsca przy podobnych obrotach.'
+    : bearing && !references ? 'Dodaj próbkę odniesienia ze sprawnego układu przy podobnych obrotach.'
+    : 'Materiał demonstracyjny wystarcza do wstępnego porównania.';
+  ui.sample.disabled = measurements >= 2;
+  ui.reference.disabled = !bearing || references >= 1;
+}
+function reset() { measurements = 1; references = 0; render(); }
+ui.scenario.addEventListener('change', reset);
+ui.channel.addEventListener('change', render);
+ui.window.addEventListener('change', render);
+ui.sample.addEventListener('click', () => { measurements = 2; render(); });
+ui.reference.addEventListener('click', () => { references = 1; render(); });
+ui.reset.addEventListener('click', reset);
+render();
+</script>
+</html>
